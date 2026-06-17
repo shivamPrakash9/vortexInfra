@@ -1,0 +1,38 @@
+@import "tailwindcss";
+
+@variant dark (&:where(.dark, .dark *));
+
+@theme {
+  /* The Rose Gold / Copper accent from the 'V' */
+  --color-primary: #c29b8c;
+  --color-primary-hover: #a88274;
+  --color-primary-light: #dfc0b4;
+
+  /* The deep charcoal from the 3D block and text */
+  --color-vortex-charcoal: #2b2b2b;
+  --color-vortex-dark: #1f1f1f;
+  --color-vortex-black: #121212;
+  
+  /* The warm cream/off-white from your logo's background */
+  --color-vortex-cream: #f4f2ee;
+}
+
+@layer base {
+
+  /* Default light mode body */
+  body {
+    @apply bg-gray-50 text-gray-900 transition-colors duration-500;
+  }
+
+  /* Dark mode body */
+  .dark body {
+    @apply bg-slate-950 text-gray-100;
+  }
+}
+
+/* Optional: Add the shimmer animation for your buttons */
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
