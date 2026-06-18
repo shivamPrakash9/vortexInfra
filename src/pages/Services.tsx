@@ -109,21 +109,26 @@ const Services = () => {
                                                 {service.short_description || service.description}
                                             </p>
 
+                                            {/* Features List (SMOOTH HOVER EXPAND) */}
                                             {service.features && service.features.length > 0 && (
-                                                <div className="flex flex-col gap-4 mb-10 p-6 bg-white/30 dark:bg-black/20 rounded-2xl border border-white/40 dark:border-white/5">
-                                                    {service.features.slice(0, 4).map((feature: string, idx: number) => (
-                                                        <div key={idx} className="flex items-center gap-3 text-sm font-medium text-gray-800 dark:text-gray-200">
-                                                            <div className="p-1 rounded-full bg-primary/20">
-                                                                <Diamond className="text-primary fill-primary" size={10} />
-                                                            </div>
-                                                            <span>{feature}</span>
+                                                <div className="grid grid-rows-[0fr] opacity-0 group-hover:grid-rows-[1fr] group-hover:opacity-100 transition-[grid-template-rows,opacity] duration-500 ease-in-out">
+                                                    <div className="overflow-hidden">
+                                                        <div className="flex flex-col gap-4 mb-8 p-6 bg-white/30 dark:bg-black/20 rounded-2xl border border-white/40 dark:border-white/5">
+                                                            {service.features.slice(0, 4).map((feature: string, idx: number) => (
+                                                                <div key={idx} className="flex items-center gap-3 text-sm font-medium text-gray-800 dark:text-gray-200">
+                                                                    <div className="p-1 rounded-full bg-primary/20">
+                                                                        <Diamond className="text-primary fill-primary" size={10} />
+                                                                    </div>
+                                                                    <span>{feature}</span>
+                                                                </div>
+                                                            ))}
+                                                            {service.features.length > 4 && (
+                                                                <div className="text-xs text-gray-500 dark:text-gray-400 italic ml-8">
+                                                                    + {service.features.length - 4} bespoke features
+                                                                </div>
+                                                            )}
                                                         </div>
-                                                    ))}
-                                                    {service.features.length > 4 && (
-                                                        <div className="text-xs text-gray-500 dark:text-gray-400 italic ml-8">
-                                                            + {service.features.length - 4} bespoke features
-                                                        </div>
-                                                    )}
+                                                    </div>
                                                 </div>
                                             )}
 
