@@ -48,15 +48,36 @@ const Portfolio = () => {
                 setPins(allPins);
 
                 // 4. Apply the URL filter immediately upon loading the data
-                const currentFilter = searchParams.get('filter') || 'All';
-                if (currentFilter === 'All') {
-                    setFilteredPins(allPins);
-                } else {
-                    setFilteredPins(allPins.filter(pin => pin.project.category === currentFilter));
-                }
+                // const currentFilter = searchParams.get('filter') || 'All';
+                // if (currentFilter === 'All') {
+                //     setFilteredPins(allPins);
+                // } else {
+                //     setFilteredPins(allPins.filter(pin => pin.project.category === currentFilter));
+                // }
 
+                // const uniqueCats = ['All', ...Array.from(new Set(data.map((p: any) => p.category)))];
+                // setCategories(uniqueCats);
+
+                // 1. Get the unique categories FIRST
                 const uniqueCats = ['All', ...Array.from(new Set(data.map((p: any) => p.category)))];
                 setCategories(uniqueCats);
+
+                // 2. Read the URL
+                const currentFilter = searchParams.get('filter') || 'All';
+
+                // 3. Find the matching category, ignoring uppercase/lowercase differences
+                const matchedCategory = uniqueCats.find(
+                    cat => cat.toLowerCase() === currentFilter.toLowerCase()
+                ) || 'All';
+
+                // 4. Set the state and filter the pins using the exact matched category
+                setActiveFilter(matchedCategory);
+
+                if (matchedCategory === 'All') {
+                    setFilteredPins(allPins);
+                } else {
+                    setFilteredPins(allPins.filter(pin => pin.project.category === matchedCategory));
+                }
             }
             setIsLoading(false);
         };
