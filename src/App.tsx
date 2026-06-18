@@ -13,6 +13,7 @@ import WhatsAppButton from './components/WhatsAppButton';
 import NotFound from './pages/NotFound';
 import ReactGA from "react-ga4";
 import AnalyticsTracker from './components/AnalyticsTracker';
+import ScrollToTop from './components/ScrollToTop';
 
 ReactGA.initialize("G-9L5XGT9ETW");
 
@@ -38,6 +39,7 @@ function App() {
   return (
     <>
       <AnalyticsTracker />
+      <ScrollToTop />
       <div className="min-h-screen bg-gray-50 text-gray-900 dark:bg-slate-950 dark:text-gray-100 transition-colors duration-500 flex flex-col">
         <Navbar isDark={isDark} setIsDark={setIsDark} />
         <div className="flex-grow pt-20">
