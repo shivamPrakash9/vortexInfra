@@ -1,12 +1,19 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom'; // 1. Import useSearchParams
 import { supabase } from '../supabaseClient';
 import { Loader2, MapPin, X, ArrowUpRight, Play } from 'lucide-react';
 
 const Portfolio = () => {
+    // 2. Initialize search params to read the URL
+    const [searchParams, setSearchParams] = useSearchParams();
+    const urlFilter = searchParams.get('filter') || 'All';
+
     const [pins, setPins] = useState<any[]>([]);
     const [filteredPins, setFilteredPins] = useState<any[]>([]);
     const [categories, setCategories] = useState<string[]>(['All']);
-    const [activeFilter, setActiveFilter] = useState('All');
+
+    // 3. Set the initial active filter to whatever is in the URL
+    const [activeFilter, setActiveFilter] = useState(urlFilter);
     const [isLoading, setIsLoading] = useState(true);
 
     // Pinterest-style Modal State
@@ -23,17 +30,14 @@ const Portfolio = () => {
             if (data) {
                 let allPins: any[] = [];
 
-                // FLATTEN THE DATA: Extract every single media item into its own "Pin"
+                // FLATTEN THE DATA
                 data.forEach(project => {
-                    // Add Video Pin
                     if (project.video_url) {
                         allPins.push({ type: 'video', url: project.video_url, project });
                     }
-                    // Add Thumbnail Pin
                     if (project.thumbnail_url) {
                         allPins.push({ type: 'image', url: project.thumbnail_url, project });
                     }
-                    // Add all Gallery Images as individual Pins
                     if (Array.isArray(project.gallery_images)) {
                         project.gallery_images.forEach((img: string) => {
                             allPins.push({ type: 'image', url: img, project });
@@ -42,7 +46,14 @@ const Portfolio = () => {
                 });
 
                 setPins(allPins);
-                setFilteredPins(allPins);
+
+                // 4. Apply the URL filter immediately upon loading the data
+                const currentFilter = searchParams.get('filter') || 'All';
+                if (currentFilter === 'All') {
+                    setFilteredPins(allPins);
+                } else {
+                    setFilteredPins(allPins.filter(pin => pin.project.category === currentFilter));
+                }
 
                 const uniqueCats = ['All', ...Array.from(new Set(data.map((p: any) => p.category)))];
                 setCategories(uniqueCats);
@@ -50,10 +61,19 @@ const Portfolio = () => {
             setIsLoading(false);
         };
         fetchPinterestData();
-    }, []);
+    }, [searchParams]); // Re-run if the URL changes
 
     const handleFilter = (category: string) => {
         setActiveFilter(category);
+
+        // 5. Update the URL dynamically when a user clicks a filter pill
+        if (category === 'All') {
+            searchParams.delete('filter');
+        } else {
+            searchParams.set('filter', category);
+        }
+        setSearchParams(searchParams);
+
         if (category === 'All') {
             setFilteredPins(pins);
         } else {
@@ -64,7 +84,6 @@ const Portfolio = () => {
     const openPin = (pin: any) => {
         setActivePin(pin);
         document.body.style.overflow = 'hidden';
-        // Scroll details panel back to top when a new pin is opened
         if (detailsScrollRef.current) {
             detailsScrollRef.current.scrollTo({ top: 0, behavior: 'smooth' });
         }
@@ -75,7 +94,6 @@ const Portfolio = () => {
         document.body.style.overflow = 'auto';
     };
 
-    // Dynamically find related pins based on category (excluding the currently active one)
     const relatedPins = activePin
         ? pins.filter(p => p.project.category === activePin.project.category && p.url !== activePin.url).slice(0, 6)
         : [];
@@ -103,8 +121,8 @@ const Portfolio = () => {
                             key={cat}
                             onClick={() => handleFilter(cat)}
                             className={`px-5 py-2.5 rounded-full text-sm font-bold transition-all ${activeFilter === cat
-                                    ? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900'
-                                    : 'bg-gray-100 text-gray-900 hover:bg-gray-200 dark:bg-gray-800 dark:text-white dark:hover:bg-gray-700'
+                                ? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900'
+                                : 'bg-gray-100 text-gray-900 hover:bg-gray-200 dark:bg-gray-800 dark:text-white dark:hover:bg-gray-700'
                                 }`}
                         >
                             {cat}
@@ -115,46 +133,58 @@ const Portfolio = () => {
 
             {/* THE PINTEREST MASONRY GRID */}
             <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="columns-2 md:columns-3 lg:columns-4 xl:columns-5 gap-4">
-                    {filteredPins.map((pin, index) => (
-                        <div
-                            key={index}
-                            onClick={() => openPin(pin)}
-                            className="break-inside-avoid relative group mb-4 rounded-2xl overflow-hidden cursor-zoom-in bg-gray-100 dark:bg-gray-900"
-                        >
-                            {/* Media */}
-                            {pin.type === 'video' ? (
-                                <video src={pin.url} autoPlay loop muted playsInline className="w-full h-auto block" />
-                            ) : (
-                                <img src={pin.url} alt={pin.project.title} loading="lazy" className="w-full h-auto block" />
-                            )}
+                {filteredPins.length > 0 ? (
+                    <div className="columns-2 md:columns-3 lg:columns-4 xl:columns-5 gap-4">
+                        {filteredPins.map((pin, index) => (
+                            <div
+                                key={index}
+                                onClick={() => openPin(pin)}
+                                className="break-inside-avoid relative group mb-4 rounded-2xl overflow-hidden cursor-zoom-in bg-gray-100 dark:bg-gray-900"
+                            >
+                                {/* Media */}
+                                {pin.type === 'video' ? (
+                                    <video src={pin.url} autoPlay loop muted playsInline className="w-full h-auto block" />
+                                ) : (
+                                    <img src={pin.url} alt={pin.project.title} loading="lazy" className="w-full h-auto block" />
+                                )}
 
-                            {/* Video Play Icon Overlay */}
-                            {pin.type === 'video' && (
-                                <div className="absolute top-4 left-4 bg-black/50 backdrop-blur-md p-2 rounded-full text-white">
-                                    <Play size={14} fill="currentColor" />
-                                </div>
-                            )}
+                                {/* Video Play Icon Overlay */}
+                                {pin.type === 'video' && (
+                                    <div className="absolute top-4 left-4 bg-black/50 backdrop-blur-md p-2 rounded-full text-white">
+                                        <Play size={14} fill="currentColor" />
+                                    </div>
+                                )}
 
-                            {/* Pinterest Hover Overlay */}
-                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex flex-col justify-between p-4">
-                                <div className="flex justify-end">
-                                    <span className="bg-red-600 text-white text-xs font-bold px-4 py-2 rounded-full shadow-lg transform translate-y-[-10px] group-hover:translate-y-0 transition-transform duration-300">
-                                        View
-                                    </span>
-                                </div>
-                                <div className="transform translate-y-[10px] group-hover:translate-y-0 transition-transform duration-300">
-                                    <h3 className="text-white font-bold text-lg leading-tight truncate">
-                                        {pin.project.title}
-                                    </h3>
-                                    <p className="text-gray-200 text-xs font-medium mt-1 truncate">
-                                        {pin.project.category}
-                                    </p>
+                                {/* Pinterest Hover Overlay */}
+                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex flex-col justify-between p-4">
+                                    <div className="flex justify-end">
+                                        <span className="bg-red-600 text-white text-xs font-bold px-4 py-2 rounded-full shadow-lg transform translate-y-[-10px] group-hover:translate-y-0 transition-transform duration-300">
+                                            View
+                                        </span>
+                                    </div>
+                                    <div className="transform translate-y-[10px] group-hover:translate-y-0 transition-transform duration-300">
+                                        <h3 className="text-white font-bold text-lg leading-tight truncate">
+                                            {pin.project.title}
+                                        </h3>
+                                        <p className="text-gray-200 text-xs font-medium mt-1 truncate">
+                                            {pin.project.category}
+                                        </p>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    ))}
-                </div>
+                        ))}
+                    </div>
+                ) : (
+                    <div className="text-center py-20">
+                        <p className="text-gray-500 dark:text-gray-400 text-lg">No inspiration boards found for this category yet.</p>
+                        <button
+                            onClick={() => handleFilter('All')}
+                            className="mt-4 text-primary font-bold hover:underline"
+                        >
+                            View All Projects
+                        </button>
+                    </div>
+                )}
             </div>
 
             {/* PINTEREST-STYLE SPLIT SCREEN MODAL */}
@@ -228,7 +258,7 @@ const Portfolio = () => {
                                 </button>
                             </div>
 
-                            {/* NEW: Related Pins Section ("More like this") */}
+                            {/* Related Pins Section ("More like this") */}
                             {relatedPins.length > 0 && (
                                 <div className="mt-auto pt-8 border-t border-gray-100 dark:border-gray-800">
                                     <h3 className="text-lg font-black text-gray-900 dark:text-white mb-4">
