@@ -62,6 +62,20 @@ const Home = () => {
     const nextReview = () => setCurrentReviewIndex((prev) => (prev + 1) % reviews.length);
     const prevReview = () => setCurrentReviewIndex((prev) => (prev === 0 ? reviews.length - 1 : prev - 1));
 
+    useEffect(() => {
+        // Don't set an interval if there are no reviews or only 1 review
+        if (reviews.length <= 1) return;
+
+        // Auto-scroll to the next review every 5 seconds (5000ms)
+        const timer = setInterval(() => {
+            setCurrentReviewIndex((prev) => (prev + 1) % reviews.length);
+        }, 5000);
+
+        // Cleanup function: This clears the timer when the component unmounts 
+        // OR when the user clicks a button manually (resetting the clock).
+        return () => clearInterval(timer);
+    }, [reviews.length, currentReviewIndex]);
+
     const getIcon = (title: string) => {
         if (title.toLowerCase().includes('kitchen')) return <Sofa size={28} />;
         if (title.toLowerCase().includes('door')) return <DoorOpen size={28} />;
