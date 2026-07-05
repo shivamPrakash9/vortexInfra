@@ -91,17 +91,17 @@ const Home = () => {
     );
 
     return (
-        <Helmet>
-            {/* The Title that shows up on the Google Search Page and browser tab */}
-            <title>Vortex Infra | Premium Interior Design & Modular Kitchens in Ranchi</title>
+        <> <Helmet>
+                {/* The Title that shows up on the Google Search Page and browser tab */}
+                <title>Vortex Infra | Premium Interior Design & Modular Kitchens in Ranchi</title>
 
-            {/* The short description that shows up directly below the title on Google */}
-            <meta
-                name="description"
-                content="Transform your space with Ranchi's top interior design, custom modular kitchens, and premium doors. Contact Vortex Infra today!"
-            />
+                {/* The short description that shows up directly below the title on Google */}
+                <meta
+                    name="description"
+                    content="Transform your space with Ranchi's top interior design, custom modular kitchens, and premium doors. Contact Vortex Infra today!"
+                />
+            </Helmet>
         <div className="w-full font-sans selection:bg-primary/30 bg-vortex-cream dark:bg-vortex-black transition-colors duration-300">
-            
             
             
             {/* 1. THE 3D BACKGROUND (Layer 0) */}
@@ -317,7 +317,7 @@ const Home = () => {
             </section>
 
         </div>
-        </Helmet>
+        </>
     );
 };
 

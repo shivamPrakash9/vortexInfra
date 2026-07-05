@@ -58,15 +58,17 @@ const About = () => {
     if (isLoading) return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
 
     return (
-        <div className="w-full bg-white dark:bg-slate-950">
-
-            <Helmet>
+        <> 
+        <Helmet>
                 <title>About Vortex Infra | Top Infrastructure & Design Team in Ranchi</title>
                 <meta
                     name="description"
                     content="Discover the story behind Vortex Infra. We deliver premium interior design, structural engineering, and home renovation services across Ranchi, Jharkhand."
                 />
-            </Helmet>
+            </Helmet> 
+        <div className="w-full bg-white dark:bg-slate-950">
+
+            
 
             {/* 1. ORIGINAL HERO SECTION */}
             <section className="relative pt-40 pb-20 flex items-center justify-center bg-gray-50 dark:bg-slate-900 border-b border-gray-100 dark:border-slate-800">
@@ -241,6 +243,7 @@ const About = () => {
                 )}
             </section>
         </div>
+        </>
     );
 };
 
