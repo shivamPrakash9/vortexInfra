@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Target, Eye, Users } from 'lucide-react';
 import { themeConfig } from '../config/theme';
 import { supabase } from '../supabaseClient';
+import { Helmet } from 'react-helmet-async';
 
 const defaultCompanyInfo = {
     name: themeConfig.brandName,
@@ -58,6 +59,14 @@ const About = () => {
 
     return (
         <div className="w-full bg-white dark:bg-slate-950">
+
+            <Helmet>
+                <title>About Vortex Infra | Top Infrastructure & Design Team in Ranchi</title>
+                <meta
+                    name="description"
+                    content="Discover the story behind Vortex Infra. We deliver premium interior design, structural engineering, and home renovation services across Ranchi, Jharkhand."
+                />
+            </Helmet>
 
             {/* 1. ORIGINAL HERO SECTION */}
             <section className="relative pt-40 pb-20 flex items-center justify-center bg-gray-50 dark:bg-slate-900 border-b border-gray-100 dark:border-slate-800">

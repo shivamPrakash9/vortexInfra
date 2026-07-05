@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 import { Send, Phone, Mail, MapPin } from 'lucide-react';
+import { Helmet } from 'react-helmet-async';
 
 // --- Custom Brand Icons ---
 const Instagram = ({ size = 20 }) => (
@@ -113,7 +114,16 @@ const Contact = () => {
     };
 
     return (
+        <Helmet>
+            <title>Contact Vortex Infra | Get a Design Consultation in Ranchi</title>
+            <meta
+                name="description"
+                content="Ready to transform your home or office space? Contact Vortex Infra in Ranchi for inquiries, project quotes, showroom visits, and consultations."
+            />
         <div className="bg-gray-50 dark:bg-gray-950 min-h-screen pb-24 font-sans selection:bg-primary/30">
+
+            
+            
 
             {/* Cinematic Hero Header (Lightened Colors) */}
             <div className="bg-slate-800 dark:bg-slate-900 pt-32 pb-48 px-6 text-center relative overflow-hidden">
@@ -291,6 +301,7 @@ const Contact = () => {
 
             </div>
         </div>
+        </Helmet>
     );
 };
 

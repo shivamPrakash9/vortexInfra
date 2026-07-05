@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  
+  <!-- Home Page -->
+  <url>
+    <loc>https://www.vortexinfra.co.in/</loc>
+    <lastmod>2024-05-20</lastmod>
+    <priority>1.00</priority>
+  </url>
+
+  <!-- About Page (If you have one) -->
+  <url>
+    <loc>https://www.vortexinfra.co.in/about</loc>
+    <lastmod>2024-05-20</lastmod>
+    <priority>0.80</priority>
+  </url>
+
+  <!-- Contact Page (If you have one) -->
+  <url>
+    <loc>https://www.vortexinfra.co.in/contact</loc>
+    <lastmod>2024-05-20</lastmod>
+    <priority>0.80</priority>
+  </url>
+
+</urlset>

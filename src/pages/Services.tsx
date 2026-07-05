@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import { Loader2, ArrowRight, Diamond, Sparkles, Image as ImageIcon, ArrowUpRight } from 'lucide-react';
+import { Helmet } from 'react-helmet-async';
 
 const Services = () => {
     const [services, setServices] = useState<any[]>([]);
@@ -22,7 +23,15 @@ const Services = () => {
     }, []);
 
     return (
+        <Helmet>
+            <title>Our Services | Modular Kitchens, Sofa Units & Interiors Ranchi</title>
+            <meta
+                name="description"
+                content="Explore our expert solutions: Turnkey interior design, custom modular kitchen installations, premium door & window setups, and luxury readymade furniture."
+            />
         <div className="relative min-h-screen pt-32 pb-32 bg-slate-50 dark:bg-[#080B12] transition-colors overflow-hidden">
+            
+            
 
             {/* --- LUXURY ANIMATED AMBIENT BACKGROUND --- */}
             <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
@@ -197,6 +206,7 @@ const Services = () => {
 
             </div>
         </div>
+        </Helmet>
     );
 };
 

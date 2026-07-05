@@ -4,6 +4,7 @@ import { ArrowRight, Star, Sofa, DoorOpen, BedDouble, MonitorPlay, ChevronLeft, 
 import { themeConfig } from '../config/theme';
 import { supabase } from '../supabaseClient';
 import ScrollShape3D from '../components/ScrollShape3D';
+import { Helmet } from 'react-helmet-async';
 
 
 const defaultCompanyInfo = {
@@ -90,8 +91,19 @@ const Home = () => {
     );
 
     return (
-        <div className="w-full font-sans selection:bg-primary/30 bg-vortex-cream dark:bg-vortex-black transition-colors duration-300">
+        <Helmet>
+            {/* The Title that shows up on the Google Search Page and browser tab */}
+            <title>Vortex Infra | Premium Interior Design & Modular Kitchens in Ranchi</title>
 
+            {/* The short description that shows up directly below the title on Google */}
+            <meta
+                name="description"
+                content="Transform your space with Ranchi's top interior design, custom modular kitchens, and premium doors. Contact Vortex Infra today!"
+            />
+        <div className="w-full font-sans selection:bg-primary/30 bg-vortex-cream dark:bg-vortex-black transition-colors duration-300">
+            
+            
+            
             {/* 1. THE 3D BACKGROUND (Layer 0) */}
             {!isMobile && (
                 <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', zIndex: 0, pointerEvents: 'none' }}>
@@ -305,6 +317,7 @@ const Home = () => {
             </section>
 
         </div>
+        </Helmet>
     );
 };
 
