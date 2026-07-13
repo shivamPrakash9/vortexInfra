@@ -35,7 +35,7 @@ const Home = () => {
         };
 
         checkMobile(); // Check immediately on load
-        window.addEventListener('resize', checkMobile); // Update if they resize the window
+        window.addEventListener('resize', checkMobile);
 
         return () => window.removeEventListener('resize', checkMobile);
     }, []);
@@ -91,7 +91,8 @@ const Home = () => {
     );
 
     return (
-        <> <Helmet>
+        <> 
+        <Helmet>
                 {/* The Title that shows up on the Google Search Page and browser tab */}
                 <title>Vortex Infra | Premium Interior Design & Modular Kitchens in Ranchi</title>
 

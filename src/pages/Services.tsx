@@ -23,12 +23,14 @@ const Services = () => {
     }, []);
 
     return (
+        <>
         <Helmet>
             <title>Our Services | Modular Kitchens, Sofa Units & Interiors Ranchi</title>
             <meta
                 name="description"
                 content="Explore our expert solutions: Turnkey interior design, custom modular kitchen installations, premium door & window setups, and luxury readymade furniture."
             />
+            </Helmet>
         <div className="relative min-h-screen pt-32 pb-32 bg-slate-50 dark:bg-[#080B12] transition-colors overflow-hidden">
             
             
@@ -206,7 +208,8 @@ const Services = () => {
 
             </div>
         </div>
-        </Helmet>
+        </>
+        
     );
 };
 
