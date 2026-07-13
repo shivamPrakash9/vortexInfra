@@ -1,296 +1,358 @@
-import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { ArrowRight, Star, Sofa, DoorOpen, BedDouble, MonitorPlay, ChevronLeft, ChevronRight, Play } from 'lucide-react';
-import { themeConfig } from '../config/theme';
+import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { Sparkles, MapPin, Phone, Mail, Send, Loader2 } from 'lucide-react';
 import { supabase } from '../supabaseClient';
-import ScrollShape3D from '../components/ScrollShape3D';
-import { Helmet } from 'react-helmet-async';
 
-const defaultCompanyInfo = {
-    name: themeConfig.brandName,
-    hero_image: "https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?q=80&w=2000&auto=format&fit=crop",
-    years_experience: '10',
-    projects_completed: '500',
-    happy_clients: '450',
-    expert_team: '25'
-};
+const Contact = () => {
+    const [searchParams] = useSearchParams();
+    const urlService = searchParams.get('service') || '';
 
-const Home = () => {
-    const [company, setCompany] = useState<any>(null);
-    const [services, setServices] = useState<any[]>([]);
-    const [reviews, setReviews] = useState<any[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
+    // Form State
+    const [formData, setFormData] = useState({
+        name: '',
+        email: '',
+        phone: '',
+        service: urlService,
+        message: ''
+    });
 
-    const [isMobile, setIsMobile] = useState(false);
-    const [currentReviewIndex, setCurrentReviewIndex] = useState(0);
+    // Submission & Company Data State
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle');
+    const [companyInfo, setCompanyInfo] = useState<any>(null);
+    const [isLoadingInfo, setIsLoadingInfo] = useState(true);
 
+    // 1. Fetch Company Info from Database
     useEffect(() => {
-        const checkMobile = () => {
-            setIsMobile(window.innerWidth < 768);
-        };
-        checkMobile();
-        window.addEventListener('resize', checkMobile);
-        return () => window.removeEventListener('resize', checkMobile);
-    }, []);
-
-    useEffect(() => {
-        const fetchData = async () => {
+        const fetchCompanyInfo = async () => {
             try {
-                const { data: companyData } = await supabase.from('company').select('*').eq('id', 1).maybeSingle();
-                if (companyData) setCompany(companyData);
+                const { data, error } = await supabase
+                    .from('company')
+                    .select('*')
+                    .eq('id', 1)
+                    .maybeSingle();
 
-                const { data: servicesData } = await supabase.from('services').select('*').eq('is_active', true).order('display_order', { ascending: true }).limit(4);
-                if (servicesData) setServices(servicesData);
-
-                const { data: reviewsData } = await supabase.from('testimonials').select('*').eq('is_featured', true).order('created_at', { ascending: false }).limit(5);
-                if (reviewsData) setReviews(reviewsData);
-            } catch (error) {
-                console.error("Unexpected error loading data:", error);
+                if (!error && data) {
+                    setCompanyInfo(data);
+                }
+            } catch (err) {
+                console.error('Error fetching company info:', err);
             } finally {
-                setIsLoading(false);
+                setIsLoadingInfo(false);
             }
         };
-        fetchData();
+        fetchCompanyInfo();
     }, []);
 
-    const nextReview = () => setCurrentReviewIndex((prev) => (prev + 1) % reviews.length);
-    const prevReview = () => setCurrentReviewIndex((prev) => (prev === 0 ? reviews.length - 1 : prev - 1));
-
+    // 2. Automatically update the service field if the URL changes
     useEffect(() => {
-        if (reviews.length <= 1) return;
-        const timer = setInterval(() => {
-            setCurrentReviewIndex((prev) => (prev + 1) % reviews.length);
-        }, 5000);
-        return () => clearInterval(timer);
-    }, [reviews.length, currentReviewIndex]);
+        if (urlService) {
+            setFormData(prev => ({ ...prev, service: urlService }));
+        }
+    }, [urlService]);
 
-    const getIcon = (title: string) => {
-        if (title.toLowerCase().includes('kitchen')) return <Sofa size={28} />;
-        if (title.toLowerCase().includes('door') || title.toLowerCase().includes('window')) return <DoorOpen size={28} />;
-        if (title.toLowerCase().includes('bed') || title.toLowerCase().includes('sofa')) return <BedDouble size={28} />;
-        return <MonitorPlay size={28} />;
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+        setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
-    if (isLoading) return (
-        <div className="min-h-screen flex items-center justify-center bg-vortex-cream dark:bg-vortex-black">
-            <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-        </div>
-    );
+    // 3. Handle Submission: Save to DB & Redirect to WhatsApp
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setIsSubmitting(true);
+        setSubmitStatus('idle');
+
+        try {
+            // Save inquiry to the contact_messages table
+            const { error } = await supabase.from('contact_messages').insert([
+                {
+                    name: formData.name,
+                    email: formData.email,
+                    phone: formData.phone,
+                    service_interest: formData.service,
+                    message: formData.message,
+                }
+            ]);
+
+            if (error) throw error;
+
+            // WhatsApp Redirect Logic
+            if (companyInfo?.whatsapp || companyInfo?.phone) {
+                const rawPhone = companyInfo.whatsapp || companyInfo.phone;
+                const cleanPhone = rawPhone.replace(/[^0-9]/g, '');
+
+                const waMessage = `*New Website Inquiry* 🚀\n\n*Name:* ${formData.name}\n*Phone:* ${formData.phone}\n*Email:* ${formData.email}\n*Service:* ${formData.service}\n\n*Message:*\n${formData.message}`;
+                const waUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(waMessage)}`;
+
+                window.open(waUrl, '_blank');
+            }
+
+            setSubmitStatus('success');
+            setFormData({ name: '', email: '', phone: '', service: '', message: '' });
+        } catch (error) {
+            console.error('Error submitting form:', error);
+            setSubmitStatus('error');
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
 
     return (
-        <>
-            <Helmet>
-                {/* Hyper-optimized SEO Title for Ranchi */}
-                <title>Best Interior Design, Modular Kitchens & Furniture in Ranchi | Vortex Infra</title>
+        <div className="relative min-h-screen pt-32 pb-32 bg-slate-50 dark:bg-[#080B12] transition-colors overflow-hidden">
 
-                {/* Keyword-rich Meta Description */}
-                <meta
-                    name="description"
-                    content="Vortex Infra is Ranchi's top choice for turnkey interior design, custom modular kitchens, readymade sofas, and premium door & window installations."
-                />
-            </Helmet>
+            {/* --- LUXURY ANIMATED AMBIENT BACKGROUND --- */}
+            <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
+                <div className="absolute top-0 left-[-10%] w-[600px] h-[600px] bg-primary/20 rounded-full blur-[120px] opacity-60 mix-blend-multiply dark:mix-blend-lighten animate-[pulse_6s_ease-in-out_infinite]"></div>
+                <div className="absolute bottom-[-10%] right-[-10%] w-[700px] h-[700px] bg-indigo-500/15 dark:bg-indigo-600/15 rounded-full blur-[150px] opacity-70 mix-blend-multiply dark:mix-blend-lighten animate-[pulse_8s_ease-in-out_infinite_reverse]"></div>
+            </div>
 
-            <div className="w-full font-sans selection:bg-primary/30 bg-vortex-cream dark:bg-vortex-black transition-colors duration-300">
+            <div className="relative z-10 max-w-7xl mx-auto px-6">
 
-                {/* 1. THE 3D BACKGROUND (Layer 0) */}
-                {!isMobile && (
-                    <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', zIndex: 0, pointerEvents: 'none' }}>
-                        <ScrollShape3D />
+                {/* --- ELEGANT HEADER --- */}
+                <div className="text-center mb-20 max-w-3xl mx-auto">
+                    <div className="flex items-center justify-center gap-3 mb-6 opacity-90">
+                        <div className="h-[1px] w-12 bg-primary"></div>
+                        <Sparkles className="text-primary" size={14} />
+                        <span className="text-primary font-bold tracking-[0.3em] uppercase text-xs">Let's Talk</span>
+                        <Sparkles className="text-primary" size={14} />
+                        <div className="h-[1px] w-12 bg-primary"></div>
                     </div>
-                )}
+                    <h1 className="text-5xl md:text-7xl font-black text-gray-900 dark:text-white mb-6 tracking-tighter drop-shadow-sm">
+                        Design Your <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-yellow-300 to-primary">Vision</span>
+                    </h1>
+                    <p className="text-gray-600 dark:text-gray-400 text-lg font-light leading-relaxed">
+                        Reach out to our architectural and interior design experts to begin transforming your space.
+                    </p>
+                </div>
 
-                {/* ========================================== */}
-                {/* 1. THE "BOXED CINEMATIC" HERO SECTION      */}
-                {/* ========================================== */}
-                <section className="w-full px-4 sm:px-6 lg:px-8 pt-28 pb-12 relative z-10">
-                    <div className="relative w-full h-[85vh] min-h-[600px] rounded-[2.5rem] md:rounded-[3.5rem] overflow-hidden shadow-2xl group">
+                <div className="grid grid-cols-1 lg:grid-cols-5 gap-12 items-start">
 
-                        <img
-                            src={company?.hero_image || defaultCompanyInfo.hero_image}
-                            alt={company?.name || defaultCompanyInfo.name}
-                            className="absolute inset-0 w-full h-full object-cover object-center transform group-hover:scale-105 transition-transform duration-[3s] ease-out"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-vortex-black/95 via-vortex-black/40 to-transparent"></div>
+                    {/* LEFT COLUMN: Contact Information & Google Maps */}
+                    <div className="lg:col-span-2 space-y-8">
+                        <div className="bg-white/60 dark:bg-slate-900/50 backdrop-blur-2xl p-8 rounded-[2rem] border border-white/60 dark:border-white/10 shadow-xl">
+                            <h3 className="text-2xl font-black text-gray-900 dark:text-white mb-8">Studio Information</h3>
 
-                        <div className="absolute top-8 left-8 right-8 flex justify-between items-center z-10 hidden md:flex">
-                            <div className="bg-white/10 backdrop-blur-md px-5 py-2 rounded-full border border-white/20 text-white text-xs font-bold uppercase tracking-widest">
-                                {company?.name || defaultCompanyInfo.name} Studio Ranchi
-                            </div>
-                            <div className="flex gap-4 text-white text-xs font-bold uppercase tracking-widest">
-                                <span className="drop-shadow-md">Interiors</span>
-                                <span className="text-primary">•</span>
-                                <span className="drop-shadow-md">Kitchens</span>
-                                <span className="text-primary">•</span>
-                                <span className="drop-shadow-md">Furniture</span>
-                            </div>
-                        </div>
-
-                        <div className="absolute bottom-0 left-0 w-full p-8 md:p-12 lg:p-16 flex flex-col md:flex-row justify-between items-end gap-8 z-10">
-                            <div className="max-w-3xl">
-                                {company?.tagline ? (
-                                    <h1 className="text-5xl md:text-7xl lg:text-[5.5rem] font-black text-white leading-[1.05] tracking-tight mb-6 drop-shadow-lg">
-                                        {company.tagline}
-                                    </h1>
-                                ) : (
-                                    <h1 className="text-5xl md:text-7xl lg:text-[5.5rem] font-black text-white leading-[1.05] tracking-tight mb-6 drop-shadow-lg">
-                                        Ranchi's Best <br className="hidden sm:block" />
-                                        <span className="text-primary italic font-serif pr-2">Interior &</span> Home Experts.
-                                    </h1>
-                                )}
-                                <p className="text-lg text-gray-300 font-light max-w-xl leading-relaxed drop-shadow-md mb-8">
-                                    Transform your space with Jharkhand's top-rated modular kitchens, stylish readymade sofas, durable doors, windows, and complete bespoke interior design services.
-                                </p>
-
-                                <div className="flex flex-wrap gap-4">
-                                    <Link to="/portfolio" className="px-8 py-4 bg-primary hover:bg-primary-hover text-white font-bold rounded-2xl transition-all shadow-lg shadow-primary/30 flex items-center gap-2">
-                                        View Our Masterpieces <ArrowRight size={18} />
-                                    </Link>
+                            {isLoadingInfo ? (
+                                <div className="flex items-center justify-center py-10">
+                                    <Loader2 className="animate-spin text-primary" size={32} />
                                 </div>
-                            </div>
-
-                            <div className="hidden lg:block shrink-0">
-                                <Link to="/contact" className="group flex items-center justify-center w-32 h-32 bg-white/10 hover:bg-white backdrop-blur-md rounded-full border border-white/20 hover:border-white transition-all duration-500 cursor-pointer">
-                                    <div className="text-white group-hover:text-vortex-charcoal flex flex-col items-center gap-2 transition-colors">
-                                        <ArrowRight size={32} className="-rotate-45 group-hover:rotate-0 transition-transform duration-500" />
-                                        <span className="text-xs font-bold uppercase tracking-widest">Connect</span>
-                                    </div>
-                                </Link>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-
-                {/* ========================================== */}
-                {/* 2. SERVICES: EDITORIAL GRID                */}
-                {/* ========================================== */}
-                <section className="py-24 bg-vortex-cream dark:bg-vortex-black transition-colors duration-300 relative z-10">
-                    <div className="max-w-7xl mx-auto px-6">
-                        <div className="flex flex-col md:flex-row justify-between items-end gap-6 mb-16">
-                            <div>
-                                <h2 className="text-sm font-black text-primary tracking-[0.2em] uppercase mb-4 flex items-center gap-2">
-                                    <span className="w-8 h-[2px] bg-primary"></span> Core Specialties in Ranchi
-                                </h2>
-                                <h3 className="text-4xl md:text-5xl font-black text-vortex-charcoal dark:text-white tracking-tight">Complete Home Solutions.</h3>
-                            </div>
-                            <Link
-                                to="/services"
-                                className="relative z-20 text-sm font-bold uppercase tracking-widest text-vortex-charcoal dark:text-white hover:text-primary dark:hover:text-primary flex items-center gap-2 pb-2 border-b-2 border-vortex-charcoal dark:border-white hover:border-primary dark:hover:border-primary transition-all cursor-pointer"
-                            >
-                                View All Services <ArrowRight size={16} />
-                            </Link>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                            {services.length > 0 ? services.map((item, index) => (
-                                <Link to={`/services`} key={item.id} className="group flex flex-col sm:flex-row bg-white dark:bg-vortex-dark rounded-[2rem] overflow-hidden shadow-sm hover:shadow-2xl hover:shadow-primary/10 border border-gray-100 dark:border-vortex-charcoal transition-all duration-500">
-                                    <div className="sm:w-2/5 h-64 sm:h-auto relative overflow-hidden">
-                                        <div className="absolute inset-0 bg-vortex-charcoal/20 group-hover:bg-transparent transition-colors z-10"></div>
-                                        <img src={item.image_url} alt={item.title} className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700" />
-                                    </div>
-                                    <div className="sm:w-3/5 p-8 flex flex-col justify-center relative">
-                                        <div className="text-primary/20 absolute top-6 right-6 transform group-hover:rotate-12 group-hover:text-primary transition-all duration-500">
-                                            {getIcon(item.title)}
+                            ) : (
+                                <div className="space-y-6">
+                                    {companyInfo?.address && (
+                                        <div className="flex items-start gap-4">
+                                            <div className="p-3 bg-primary/10 rounded-full text-primary shrink-0">
+                                                <MapPin size={24} />
+                                            </div>
+                                            <div>
+                                                <h4 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider mb-1">Headquarters</h4>
+                                                <p className="text-gray-600 dark:text-gray-400 font-light whitespace-pre-line">{companyInfo.address}</p>
+                                            </div>
                                         </div>
-                                        <span className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">0{index + 1}</span>
-                                        <h4 className="text-2xl font-bold text-vortex-charcoal dark:text-white mb-3">{item.title}</h4>
-                                        <p className="text-gray-500 dark:text-gray-400 text-sm leading-relaxed line-clamp-3">
-                                            {item.short_description}
-                                        </p>
+                                    )}
+
+                                    {companyInfo?.phone && (
+                                        <div className="flex items-start gap-4">
+                                            <div className="p-3 bg-primary/10 rounded-full text-primary shrink-0">
+                                                <Phone size={24} />
+                                            </div>
+                                            <div>
+                                                <h4 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider mb-1">Phone</h4>
+                                                <p className="text-gray-600 dark:text-gray-400 font-light">{companyInfo.phone}</p>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {companyInfo?.email && (
+                                        <div className="flex items-start gap-4">
+                                            <div className="p-3 bg-primary/10 rounded-full text-primary shrink-0">
+                                                <Mail size={24} />
+                                            </div>
+                                            <div>
+                                                <h4 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider mb-1">Email</h4>
+                                                <p className="text-gray-600 dark:text-gray-400 font-light">{companyInfo.email}</p>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* Dynamic Social Media Links with Inline SVGs */}
+                            {!isLoadingInfo && (companyInfo?.facebook_url || companyInfo?.instagram_url || companyInfo?.linkedin_url || companyInfo?.youtube_url) && (
+                                <div className="mt-8 pt-8 border-t border-gray-200 dark:border-white/10">
+                                    <h4 className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-4">Connect With Us</h4>
+                                    <div className="flex items-center gap-3">
+                                        {companyInfo?.instagram_url && (
+                                            <a href={companyInfo.instagram_url} target="_blank" rel="noopener noreferrer" className="p-3 bg-primary/10 hover:bg-primary text-primary hover:text-white rounded-full transition-all duration-300 transform hover:scale-110 flex items-center justify-center">
+                                                <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round">
+                                                    <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
+                                                    <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
+                                                    <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
+                                                </svg>
+                                            </a>
+                                        )}
+                                        {companyInfo?.facebook_url && (
+                                            <a href={companyInfo.facebook_url} target="_blank" rel="noopener noreferrer" className="p-3 bg-primary/10 hover:bg-primary text-primary hover:text-white rounded-full transition-all duration-300 transform hover:scale-110 flex items-center justify-center">
+                                                <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round">
+                                                    <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path>
+                                                </svg>
+                                            </a>
+                                        )}
+                                        {companyInfo?.linkedin_url && (
+                                            <a href={companyInfo.linkedin_url} target="_blank" rel="noopener noreferrer" className="p-3 bg-primary/10 hover:bg-primary text-primary hover:text-white rounded-full transition-all duration-300 transform hover:scale-110 flex items-center justify-center">
+                                                <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round">
+                                                    <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"></path>
+                                                    <rect x="2" y="9" width="4" height="12"></rect>
+                                                    <circle cx="4" cy="4" r="2"></circle>
+                                                </svg>
+                                            </a>
+                                        )}
+                                        {companyInfo?.youtube_url && (
+                                            <a href={companyInfo.youtube_url} target="_blank" rel="noopener noreferrer" className="p-3 bg-primary/10 hover:bg-primary text-primary hover:text-white rounded-full transition-all duration-300 transform hover:scale-110 flex items-center justify-center">
+                                                <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round">
+                                                    <path d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2A29 29 0 0 0 1 11.75a29 29 0 0 0 .46 5.33 2.78 2.78 0 0 0 1.94 2C5.12 19.5 12 19.5 12 19.5s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2 29 29 0 0 0 .46-5.33 29 29 0 0 0-.46-5.33z"></path>
+                                                    <polygon points="9.75 15.02 15.5 11.75 9.75 8.48 9.75 15.02"></polygon>
+                                                </svg>
+                                            </a>
+                                        )}
                                     </div>
-                                </Link>
-                            )) : (
-                                <div className="col-span-full text-center text-gray-500 py-10 bg-white dark:bg-vortex-dark rounded-[2rem] border border-dashed border-gray-300 dark:border-vortex-charcoal">No services found. Add some in your Admin Dashboard.</div>
+                                </div>
+                            )}
+
+                            {/* Dynamic Google Maps Embed */}
+                            {!isLoadingInfo && companyInfo?.google_map_embed_url && (
+                                <div className="mt-8 rounded-2xl overflow-hidden shadow-lg border border-gray-200 dark:border-white/10 h-64 relative group">
+                                    <iframe
+                                        src={companyInfo.google_map_embed_url}
+                                        width="100%"
+                                        height="100%"
+                                        style={{ border: 0 }}
+                                        allowFullScreen={false}
+                                        loading="lazy"
+                                        referrerPolicy="no-referrer-when-downgrade"
+                                        className="absolute inset-0 grayscale group-hover:grayscale-0 transition-all duration-700"
+                                    ></iframe>
+                                </div>
                             )}
                         </div>
                     </div>
-                </section>
 
-                {/* ========================================== */}
-                {/* 3. TESTIMONIALS: THE FLOATING CARD         */}
-                {/* ========================================== */}
-                {reviews.length > 0 && (
-                    <section className="py-24 bg-white/20 dark:bg-vortex-dark/20 transition-colors duration-300 relative overflow-hidden ">
-                        <div className="max-w-7xl mx-auto px-6 relative z-10">
-                            <div className="bg-vortex-charcoal dark:bg-vortex-black rounded-[3rem] p-8 md:p-16 shadow-2xl flex flex-col lg:flex-row gap-12 items-center relative overflow-hidden">
+                    {/* RIGHT COLUMN: The Glassmorphic Form */}
+                    <div className="lg:col-span-3">
+                        <div className="bg-white/60 dark:bg-slate-900/50 backdrop-blur-2xl p-8 md:p-12 rounded-[2.5rem] border border-white/60 dark:border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.1)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.5)] relative overflow-hidden">
 
-                                <div className="absolute top-0 right-0 w-64 h-64 bg-primary/20 rounded-full blur-[80px] translate-x-1/2 -translate-y-1/2"></div>
+                            {/* Form glowing aura */}
+                            <div className="absolute -top-24 -right-24 w-64 h-64 bg-primary/20 rounded-full blur-[80px] pointer-events-none"></div>
 
-                                <div className="lg:w-1/3 relative z-10">
-                                    <h2 className="text-4xl md:text-5xl font-black text-white leading-tight mb-6">Client<br /><span className="text-primary">Experiences.</span></h2>
-                                    <div className="flex gap-3">
-                                        <button onClick={prevReview} className="p-4 rounded-full bg-white/10 text-white hover:bg-primary transition-all backdrop-blur-md">
-                                            <ChevronLeft size={20} />
-                                        </button>
-                                        <button onClick={nextReview} className="p-4 rounded-full bg-white/10 text-white hover:bg-primary transition-all backdrop-blur-md">
-                                            <ChevronRight size={20} />
-                                        </button>
+                            <form onSubmit={handleSubmit} className="relative z-10 flex flex-col gap-6">
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div className="flex flex-col gap-2">
+                                        <label className="text-xs font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400">Full Name</label>
+                                        <input
+                                            type="text"
+                                            name="name"
+                                            required
+                                            value={formData.name}
+                                            onChange={handleChange}
+                                            className="w-full bg-white/50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-xl px-5 py-4 focus:outline-none focus:ring-2 focus:ring-primary text-gray-900 dark:text-white transition-all placeholder-gray-400"
+                                            placeholder="John Doe"
+                                        />
+                                    </div>
+                                    <div className="flex flex-col gap-2">
+                                        <label className="text-xs font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400">Email Address</label>
+                                        <input
+                                            type="email"
+                                            name="email"
+                                            required
+                                            value={formData.email}
+                                            onChange={handleChange}
+                                            className="w-full bg-white/50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-xl px-5 py-4 focus:outline-none focus:ring-2 focus:ring-primary text-gray-900 dark:text-white transition-all placeholder-gray-400"
+                                            placeholder="john@example.com"
+                                        />
                                     </div>
                                 </div>
 
-                                <div className="lg:w-2/3 relative z-10 w-full">
-                                    <div className="flex gap-1 text-primary mb-6">
-                                        {[...Array(5)].map((_, i) => (
-                                            <Star key={i} size={20} fill={i < (reviews[currentReviewIndex].rating || 5) ? "currentColor" : "none"} />
-                                        ))}
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div className="flex flex-col gap-2">
+                                        <label className="text-xs font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400">Phone Number</label>
+                                        <input
+                                            type="tel"
+                                            name="phone"
+                                            required
+                                            value={formData.phone}
+                                            onChange={handleChange}
+                                            className="w-full bg-white/50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-xl px-5 py-4 focus:outline-none focus:ring-2 focus:ring-primary text-gray-900 dark:text-white transition-all placeholder-gray-400"
+                                            placeholder="+1 (555) 000-0000"
+                                        />
                                     </div>
-                                    <p className="text-2xl md:text-3xl font-light text-white mb-10 leading-relaxed font-serif italic">
-                                        "{reviews[currentReviewIndex].review || reviews[currentReviewIndex].comment}"
-                                    </p>
-                                    <div className="flex items-center gap-5">
-                                        {reviews[currentReviewIndex].image_url ? (
-                                            <img src={reviews[currentReviewIndex].image_url} alt={reviews[currentReviewIndex].customer_name} className="w-16 h-16 rounded-full object-cover border border-white/20" />
-                                        ) : (
-                                            <div className="w-16 h-16 rounded-full bg-primary flex items-center justify-center text-white font-black text-2xl shadow-lg">
-                                                {reviews[currentReviewIndex].customer_name.charAt(0)}
-                                            </div>
-                                        )}
-                                        <div>
-                                            <h4 className="font-bold text-white tracking-wide">{reviews[currentReviewIndex].customer_name}</h4>
-                                            <span className="text-gray-400 text-xs font-bold uppercase tracking-widest">Verified Client</span>
-                                        </div>
+                                    <div className="flex flex-col gap-2">
+                                        <label className="text-xs font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400">Service of Interest</label>
+                                        <input
+                                            type="text"
+                                            name="service"
+                                            value={formData.service}
+                                            onChange={handleChange}
+                                            className="w-full bg-white/50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-xl px-5 py-4 focus:outline-none focus:ring-2 focus:ring-primary text-gray-900 dark:text-white transition-all placeholder-gray-400"
+                                            placeholder="e.g. Kitchen Renovation"
+                                        />
                                     </div>
                                 </div>
-                            </div>
-                        </div>
-                    </section>
-                )}
 
-                {/* ========================================== */}
-                {/* 4. STATS BANNER                            */}
-                {/* ========================================== */}
-                <section className="py-24 bg-vortex-cream/20 dark:bg-vortex-black/20 relative z-20">
-                    <div className="max-w-7xl mx-auto px-6">
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-y-12 gap-x-8 border-y border-gray-300 dark:border-slate-800 py-16">
-                            <div className="text-center md:border-r border-gray-300 dark:border-slate-800">
-                                <div className="text-5xl md:text-6xl font-black text-primary mb-3">
-                                    {company?.years_experience || defaultCompanyInfo.years_experience}<span className="text-vortex-charcoal dark:text-white text-4xl">+</span>
+                                <div className="flex flex-col gap-2">
+                                    <label className="text-xs font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400">Project Details</label>
+                                    <textarea
+                                        name="message"
+                                        required
+                                        rows={5}
+                                        value={formData.message}
+                                        onChange={handleChange}
+                                        className="w-full bg-white/50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-xl px-5 py-4 focus:outline-none focus:ring-2 focus:ring-primary text-gray-900 dark:text-white transition-all placeholder-gray-400 resize-none"
+                                        placeholder="Tell us about your vision, timeline, and space..."
+                                    ></textarea>
                                 </div>
-                                <div className="text-xs font-bold text-gray-500 uppercase tracking-[0.2em]">Years Experience</div>
-                            </div>
-                            <div className="text-center md:border-r border-gray-300 dark:border-slate-800">
-                                <div className="text-5xl md:text-6xl font-black text-primary mb-3">
-                                    {company?.projects_completed || defaultCompanyInfo.projects_completed}<span className="text-vortex-charcoal dark:text-white text-4xl">+</span>
-                                </div>
-                                <div className="text-xs font-bold text-gray-500 uppercase tracking-[0.2em]">Projects Built</div>
-                            </div>
-                            <div className="text-center md:border-r border-gray-300 dark:border-slate-800">
-                                <div className="text-5xl md:text-6xl font-black text-primary mb-3">
-                                    {company?.happy_clients || defaultCompanyInfo.happy_clients}<span className="text-vortex-charcoal dark:text-white text-4xl">+</span>
-                                </div>
-                                <div className="text-xs font-bold text-gray-500 uppercase tracking-[0.2em]">Happy Clients</div>
-                            </div>
-                            <div className="text-center">
-                                <div className="text-5xl md:text-6xl font-black text-primary mb-3">
-                                    {defaultCompanyInfo.expert_team}<span className="text-vortex-charcoal dark:text-white text-4xl">+</span>
-                                </div>
-                                <div className="text-xs font-bold text-gray-500 uppercase tracking-[0.2em]">Studio Experts</div>
-                            </div>
+
+                                <button
+                                    type="submit"
+                                    disabled={isSubmitting}
+                                    className="group relative overflow-hidden bg-gray-900 dark:bg-white text-white dark:text-gray-900 px-8 py-5 rounded-xl font-bold uppercase tracking-widest text-xs flex items-center justify-center gap-3 hover:scale-[1.02] transition-all duration-300 shadow-xl mt-4 w-full md:w-auto md:self-end disabled:opacity-70 disabled:hover:scale-100"
+                                >
+                                    {isSubmitting ? (
+                                        <Loader2 className="animate-spin" size={18} />
+                                    ) : (
+                                        <>
+                                            <span className="relative z-10 flex items-center gap-2">
+                                                Submit Inquiry
+                                                <Send size={16} className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform duration-300" />
+                                            </span>
+                                            {/* Hover Glow */}
+                                            <div className="absolute inset-0 bg-gradient-to-r from-primary via-yellow-400 to-primary opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                                            <span className="absolute inset-0 z-0 bg-gradient-to-r from-primary via-yellow-400 to-primary opacity-0 group-hover:opacity-100 transition-opacity duration-300 text-gray-900 flex items-center justify-center gap-2 font-bold">
+                                                Submit Inquiry
+                                                <Send size={16} className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform duration-300" />
+                                            </span>
+                                        </>
+                                    )}
+                                </button>
+
+                                {/* Success/Error Messages */}
+                                {submitStatus === 'success' && (
+                                    <div className="mt-4 p-4 bg-green-500/10 border border-green-500/20 rounded-xl text-green-600 dark:text-green-400 text-sm font-medium text-center animate-in fade-in slide-in-from-bottom-4">
+                                        Thank you! Your inquiry has been saved and sent to WhatsApp.
+                                    </div>
+                                )}
+                                {submitStatus === 'error' && (
+                                    <div className="mt-4 p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-600 dark:text-red-400 text-sm font-medium text-center animate-in fade-in slide-in-from-bottom-4">
+                                        Something went wrong. Please try again or contact us directly.
+                                    </div>
+                                )}
+                            </form>
+
                         </div>
                     </div>
-                </section>
+
+                </div>
             </div>
-        </>
+        </div>
     );
 };
 
-export default Home;
+export default Contact;
