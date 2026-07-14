@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "postbuild": "react-snap",
     "lint": "eslint .",
     "preview": "vite preview"
   },
@@ -27,7 +28,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
-    "@types/node": "^24.12.3",
+    "@types/node": "^24.13.3",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.1",
@@ -37,8 +38,19 @@
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.6.0",
     "postcss": "^8.5.15",
+    "react-snap": "^1.23.0",
     "typescript": "~6.0.2",
     "typescript-eslint": "^8.59.2",
     "vite": "^8.0.12"
+  },
+  "reactSnap": {
+    "source": "dist",
+    "include": [
+      "/",
+      "/services",
+      "/portfolio",
+      "/about",
+      "/contact"
+    ]
   }
 }

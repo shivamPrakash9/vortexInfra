@@ -217,8 +217,8 @@ const Contact = () => {
                                 </div>
                             )}
 
-                            {/* Dynamic Google Maps Embed */}
-                            {!isLoadingInfo && companyInfo?.google_map_embed_url && (
+                            {/* Dynamic Google Maps Embed - Hidden from the pre-renderer bot to prevent external JS crashes */}
+                            {!isLoadingInfo && companyInfo?.google_map_embed_url && window.navigator.userAgent !== 'ReactSnap' && (
                                 <div className="mt-8 rounded-2xl overflow-hidden shadow-lg border border-gray-200 dark:border-white/10 h-64 relative group">
                                     <iframe
                                         src={companyInfo.google_map_embed_url}
